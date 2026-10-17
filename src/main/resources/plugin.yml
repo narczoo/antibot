@@ -1,0 +1,37 @@
+name: AntyBot
+version: 1.0.0
+main: pl.antybot.plugin.AntiBotPlugin
+api-version: '1.21'
+author: AntyBot
+description: Skuteczny i lekki plugin ochronny z systemem Captcha i Auth Premium na Minecraft 1.21.4
+
+commands:
+  antibot:
+    description: Główna komenda pluginu AntyBot
+    aliases: [ab, antybot]
+    permission: antibot.admin
+    usage: /antibot [status|reload|attack|trust|untrust|captcha|unregister|setpassword|setpremium|forcelogin|vpn|update|clear]
+  login:
+    description: Logowanie do konta non-premium
+    aliases: [l, zaloguj]
+    usage: /login <hasło>
+  register:
+    description: Rejestracja nowego konta non-premium
+    aliases: [reg, zarejestruj]
+    usage: /register <hasło> <powtórzHasło>
+  changepassword:
+    description: Zmiana hasła do konta
+    aliases: [zmienhaslo, changepass]
+    usage: /changepassword <stareHasło> <noweHasło>
+  premium:
+    description: Sprawdzenie statusu konta Premium / Auto-login
+    aliases: [autologin]
+    usage: /premium
+
+permissions:
+  antibot.admin:
+    description: Dostęp do komend administracyjnych i alertów o ataku
+    default: op
+  antibot.bypass:
+    description: Ominięcie filtrów antybota i captchy
+    default: false

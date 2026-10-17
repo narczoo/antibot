@@ -1,0 +1,307 @@
+# ============================================================
+#               AntyBot - Konfiguracja Pluginu
+#               Kompatybilność: Minecraft 1.21.4
+# ============================================================
+
+# Główny prefiks widoczny w wiadomościach pluginu
+prefix: "&8[&c&lAntyBot&8]&r "
+
+# ------------------------------------------------------------
+# 1. TRYB ATAKU (Attack Mode / Panic Mode)
+# Automatycznie włącza się, gdy w krótkim czasie wchodzi za dużo kont.
+# ------------------------------------------------------------
+attack-mode:
+  enabled: true
+  # Liczba dołączeń wyzwalająca tryb ataku
+  trigger-joins: 4
+  # Okno czasowe sprawdzania dołączeń (w sekundach)
+  trigger-seconds: 3
+  # Czas trwania trybu ataku po wykryciu (w sekundach)
+  duration-seconds: 60
+  # Czy nowi gracze (pierwszy raz na serwerze) mają być odrzucani podczas ataku
+  block-new-players: true
+  # Wymóg ponownego połączenia po odczekaniu (skuteczny filtr botów)
+  require-reconnect: true
+  # Czas w sekundach, po którym gracz może wejść ponownie
+  reconnect-delay-seconds: 4
+
+# ------------------------------------------------------------
+# 2. WERYFIKACJA PINGU (Ping-Before-Join Check)
+# Prawdziwy gracz Minecraft odświeża listę serwerów przed wejściem.
+# Proste boty łączą się bezpośrednio bez zapytania o listę (ping).
+# ------------------------------------------------------------
+ping-check:
+  enabled: true
+  # Maksymalny wiek pingu w sekundach (domyślnie 900s = 15 minut)
+  max-ping-age-seconds: 900
+
+# ------------------------------------------------------------
+# 3. OCHRONA PRZED SPAMEM POŁĄCZEŃ I LIMIT KONT NA IP
+# Chroni serwer przed falami botów, floodem połączeń i przeciążeniem.
+# ------------------------------------------------------------
+ip-limit:
+  enabled: true
+  # Maksymalna liczba jednocześnie zalogowanych kont z tego samego adresu IP
+  max-connections-per-ip: 3
+
+  # Wsparcie dla współdzielonych adresów IP (rodzeństwo na jednym Wi-Fi, akademiki, LAN):
+  # Jeśli z danego adresu IP gra już zweryfikowany / zaufany gracz, IP otrzymuje dodatkowe sloty:
+  shared-ip:
+    enabled: true
+    # Dodatkowa liczba dozwolonych kont z tego samego IP, jeśli gra z niego zaufany gracz
+    extra-connections: 2
+
+  # Globalny limit nowych połączeń na sekundę na całym serwerze (Global CPS Protection):
+  global-throttle:
+    enabled: true
+    # Maksymalna liczba nowych połączeń na sekundę (0 = wyłączone)
+    max-joins-per-second: 15
+
+  # Limit nagłych serii połączeń z tego samego IP (Burst Protection)
+  burst-protection:
+    enabled: true
+    # Maksymalna liczba prób połączeń z jednego IP w oknie czasowym
+    max-connections: 5
+    # Okno czasowe w sekundach
+    window-seconds: 3
+
+  # Krótkie blokady tymczasowe w pamięci RAM (zamiast szkodliwych banów permanentnych):
+  temp-block:
+    enabled: true
+    # Czas trwania tymczasowej blokady IP po przekroczeniu limitu burst/spamu (w sekundach)
+    duration-seconds: 15
+
+  # Ograniczona kolejka i maksymalna liczba jednocześnie aktywnych weryfikacji (Captcha / Ruch):
+  verification-queue:
+    # Maksymalna liczba jednoczesnych aktywnych weryfikacji graczy na serwerze
+    max-concurrent-verifications: 25
+
+  # Ochrona przed wielokrotnym uruchamianiem weryfikacji / połączeń równoległych z tego samego IP/gracza
+  single-flight:
+    enabled: true
+
+# ------------------------------------------------------------
+# 4. SYSTEM ANTY-VPN I PROXY (Anti-VPN & Datacenter Protection)
+# Wykrywa i blokuje połączenia z sieci VPN, serwerów Proxy, Tor
+# oraz serwerowni/centrów danych (Hosting) używanych przez botnety.
+# ------------------------------------------------------------
+anti-vpn:
+  enabled: true
+  # Tryb sprawdzania:
+  # ALWAYS - sprawdza każdego nowego gracza (zalecane)
+  # ATTACK_ONLY - weryfikuje VPN tylko podczas aktywnego ataku botów
+  trigger-mode: ALWAYS
+  # Dostawca bazy danych VPN:
+  # AUTO - automatyczny wybór (ProxyCheck.io z zapasowym IP-API.com)
+  # PROXYCHECK - sprawdza tylko bazę ProxyCheck.io
+  # IP_API - sprawdza tylko bazę IP-API.com
+  provider: AUTO
+  # Opcjonalny klucz API do ProxyCheck.io (działa bez klucza do 1000 zapytań/dzień)
+  api-key: ""
+  # Czy blokować adresy IP centrów danych / serwerowni (Hosting / Datacenter)
+  # Zdecydowana większość ataków botów pochodzi z serwerowni (OVH, Hetzner, AWS itp.)
+  block-hosting: true
+  # Czy gracze zapisani w bazie zaufanych (trusted.yml) mogą omijać Anti-VPN
+  bypass-trusted: true
+  # Czas przechowywania sprawdzonych IP w pamięci podręcznej (w godzinach)
+  cache-time-hours: 24
+
+  # --- Zaawansowane limity wątków i zapytań HTTP (Ochrona przed falami botów) ---
+  # Liczba wątków roboczych dedykowanych dla zapytań AntiVPN
+  max-worker-threads: 4
+  # Maksymalny rozmiar kolejki oczekujących zadań sprawdzenia
+  max-pending-tasks: 100
+  # Maksymalna liczba równocześnie wykonywanych zapytań HTTP do zewnętrznych API (Semaphore)
+  max-concurrent-requests: 5
+  # Timeout połączenia TCP do API (w milisekundach)
+  connect-timeout-ms: 2000
+  # Całkowity timeout zapytania HTTP do API (w milisekundach)
+  request-timeout-ms: 2500
+  # Globalny limit nowych zapytań HTTP na minutę (Token Bucket / Sliding Window)
+  global-checks-per-minute: 60
+  # Minimalny odstęp w sekundach między ponownymi próbami sprawdzenia tego samego IP w razie błędu API
+  ip-check-cooldown-seconds: 10
+  # Polityka zachowania w przypadku przeciążenia kolejki lub limitu zapytań:
+  # FAIL_OPEN - wpuszcza gracza (chroni przed zablokowaniem prawdziwych graczy przy ataku)
+  # FAIL_CLOSED - blokuje wejście z informacją o przeciążeniu
+  overload-policy: FAIL_OPEN
+  # Polityka zachowania w przypadku awarii/błędu zewnętrznego API (np. brak internetu, błąd 500 dostawcy):
+  # FAIL_OPEN - wpuszcza gracza
+  # FAIL_CLOSED - blokuje wejście
+  failure-policy: FAIL_OPEN
+
+  # Biała lista adresów IP, które nigdy nie są blokowane
+  whitelist-ips:
+    - "127.0.0.1"
+  # Biała lista nicków graczy, którzy mogą łączyć się przez VPN (np. administratorzy)
+  whitelist-players: []
+
+# ------------------------------------------------------------
+# 5. FILTR NICKÓW (Nickname Patterns)
+# Odrzuca automatycznie generowane nicki botów.
+# ------------------------------------------------------------
+nickname-filter:
+  enabled: true
+  min-length: 3
+  max-length: 16
+  # Wyrażenia regularne (Regex) blokowanych wzorców nicków
+  blocked-patterns:
+    - "(?i)^bot_.*"
+    - "(?i)^player\\d{3,}$"
+    - "(?i)^mcdrop.*"
+    - "(?i)^crash.*"
+    - "(?i)^mcbot.*"
+
+# ------------------------------------------------------------
+# 5. WERYFIKACJA CAPTCHA W GUI TABLICZKI (Sign GUI Captcha)
+# Wyświetla graczowi kod captchy i otwiera interfejs tabliczki,
+# na której gracz musi przepisać kod.
+# ------------------------------------------------------------
+captcha:
+  enabled: true
+  # Kiedy captcha ma być wymagana:
+  # ALWAYS - dla każdego nowego/niezaufanego gracza (zalecane)
+  # ATTACK_ONLY - tylko w trakcie trwania zmasowanego ataku botów
+  trigger-mode: ALWAYS
+  # Długość generowanego kodu captchy (np. 4 znaki)
+  code-length: 4
+  # Dozwolone znaki do generowania kodu (cyfry, wielkie oraz małe litery)
+  characters: "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz"
+  # Czas na przepisanie kodu w sekundach (np. 30s)
+  timeout-seconds: 30
+  # Maksymalna liczba prób
+  max-attempts: 3
+  # Czy wielkość liter ma znaczenie (false = a odpowiada A)
+  case-sensitive: true
+  # Czy pozwolić na awaryjne wpisanie kodu na czacie (wsparcie np. dla Bedrock/Geyser)
+  allow-chat-fallback: false
+  # W której linijce tabliczki gracz ma wpisać kod:
+  # RANDOM - losowa linijka (1, 2, 3 lub 4) przy każdej weryfikacji (najskuteczniejsza ochrona przed botami)
+  # 1, 2, 3 lub 4 - stała konkretna linijka tabliczki
+  required-line: RANDOM
+  # Opóźnienie otwarcia GUI tabliczki w tickach po dołączeniu (5 ticków = 0.25s)
+  open-delay-ticks: 5
+  # Efekt oślepienia (Blindness) podczas rozwiązywania captchy
+  blindness: true
+
+# ------------------------------------------------------------
+# 6. WERYFIKACJA RUCHU PO CAPTCHY (Movement Check)
+# Gracz po rozwiązaniu captchy musi obrócić kamerę i zrobić kroki.
+# ------------------------------------------------------------
+movement-check:
+  enabled: true
+  # Liczba wymaganych ruchów/obrotów kamerą (np. 5)
+  required-camera-moves: 5
+  # Liczba wymaganych kroków (np. 5)
+  required-walk-steps: 5
+  # Czas w sekundach na wykonanie weryfikacji ruchu
+  timeout-seconds: 45
+  # Czy blokować czat przed weryfikacją
+  block-chat: true
+  # Czy blokować komendy przed weryfikacją
+  block-commands: true
+
+# ------------------------------------------------------------
+# 7. SYSTEM LOGOWANIA I REJESTRACJI (Auth & Auto-Login Premium)
+# Gracze Premium są automatycznie wykrywani i logowani (bez hasła).
+# Gracze Non-Premium rejestrują się komendą /register i logują /login.
+# ------------------------------------------------------------
+auth:
+  enabled: false
+  # Automatyczne wykrywanie kont Mojang Premium przez API Mojang
+  premium-auto-detect: true
+  # Limit czasu na zalogowanie/rejestrację w sekundach
+  timeout-seconds: 60
+  # Maksymalna liczba nieudanych prób wpisania hasła
+  max-failed-attempts: 5
+  # Wymagana długość hasła
+  min-password-length: 4
+  max-password-length: 32
+  # Wymóg złożoności hasła (musi zawierać dużą literę, małą literę, cyfrę i znak specjalny)
+  require-complex-password: true
+  # Efekt oślepienia (Blindness) do momentu zalogowania
+  blindness: true
+  # Sesja logowania (Auto-login po IP dla graczy non-premium)
+  session:
+    enabled: true
+    # Czas ważności sesji w minutach (domyślnie 60 minut)
+    timeout-minutes: 60
+
+# ------------------------------------------------------------
+# 8. POWIADOMIENIA ADMINISTRACYJNE
+# Wysyłane do graczy z uprawnieniem antibot.admin
+# ------------------------------------------------------------
+notifications:
+  # Informowanie o rozpoczęciu i zakończeniu trybu ataku
+  notify-on-attack-state: true
+  # Informowanie na bieżąco o zablokowanym bocie
+  notify-on-bot-block: true
+  # Czy wyświetlać alert w Actionbarze
+  show-actionbar: true
+
+# ------------------------------------------------------------
+# 9. SPRAWDZANIE AKTUALIZACJI (GitHub Update Checker)
+# Automatycznie sprawdza na GitHubie, czy dostępna jest nowa wersja pluginu.
+# ------------------------------------------------------------
+update-checker:
+  enabled: true
+  # Repozytorium GitHub w formacie: wlasciciel/nazwa_repozytorium
+  github-repo: "Narczo12/api"
+  # Czy powiadamiać administratorów z uprawnieniem antibot.admin przy wejściu na serwer
+  notify-admins-on-join: true
+  # Odstęp automatycznego sprawdzania w godzinach (0 = sprawdzenie tylko przy starcie/przeładowaniu)
+  check-interval-hours: 6
+
+# ------------------------------------------------------------
+# 10. WIADOMOŚCI DLA GRACZY I KICKI
+# Obsługuje kody kolorów '&' oraz formatowanie nowej linii '\n'
+# ------------------------------------------------------------
+messages:
+  attack-mode-kick: "&c&lSERWER CHWILOWO CHRONIONY\n\n&7Wykryto zmasowany atak botów na serwer.\n&eOdczekaj chwilę i połącz się ponownie za &a{TIME}s&e."
+  ping-check-kick: "&c&lWYMAGANA WERYFIKACJA LISTY SERWERÓW\n\n&7Musisz odświeżyć serwer na liście serwerów przed wejściem!\n&fKliknij &eOdśwież &fw menu serwerów Minecraft i spróbuj ponownie."
+  ip-limit-kick: "&c&lPRZEKROCZONO LIMIT POŁĄCZEŃ\n\n&7Z Twojego adresu IP jest już zalogowana maksymalna liczba kont &8(&e{LIMIT}&8)&7."
+  ip-burst-kick: "&c&lZBYT CZĘSTE POŁĄCZENIA\n\n&7Wykryto zbyt wiele prób połączeń z Twojego adresu IP.\n&eOdczekaj chwilę przed kolejną próbą!"
+  global-throttle-kick: "&c&lSERWER JEST PRZECIĄŻONY\n\n&7Wykryto zbyt dużą liczbę nowych połączeń jednocześnie.\n&eOdczekaj chwilę i połącz się ponownie."
+  temp-block-kick: "&c&lTYMCZASOWA BLOKADA RATE-LIMIT\n\n&7Wykryto podejrzany spam połączeń z Twojego adresu IP.\n&eOdczekaj &a{SECONDS}s&e przed kolejną próbą."
+  verification-queue-full-kick: "&c&lKOLEJKA WERYFIKACJI JEST PEŁNA\n\n&7Trwa weryfikacja maksymalnej liczby graczy ({LIMIT}).\n&eSpróbuj połączyć się ponownie za kilka sekund."
+  duplicate-handshake-kick: "&c&lPOŁĄCZENIE W TOKU\n\n&7Trwa już przetwarzanie Twojego połączenia z serwerem.\n&eOdczekaj chwilę przed kolejną próbą."
+  anti-vpn-kick: "&c&lWYKRYTO VPN / PROXY\n\n&7Połączenia z sieci VPN, serwerów Proxy oraz centrów danych są zablokowane na tym serwerze.\n&eWyłącz VPN/Proxy i spróbuj połączyć się ponownie."
+  anti-vpn-overload-kick: "&c&lSERWER JEST PRZECIĄŻONY\n\n&7Trwa weryfikacja zbyt wielu połączeń jednocześnie.\n&eSpróbuj połączyć się ponownie za chwilę."
+  invalid-nickname: "&c&lBŁĘDNY NICKNAME\n\n&7Twój nick został zablokowany przez filtr anty-botowy serwera."
+  reconnect-wait: "&e&lWERYFIKACJA POŁĄCZENIA\n\n&7Zarejestrowano Twoją próbę połączenia.\n&aWejdź ponownie na serwer za &e{SECONDS}s&a!"
+  captcha-chat-prompt: "&7Spójrz na pasek &eActionbar &7(nad ekwipunkiem) i przepisz wyświetlony kod na tabliczce!"
+  captcha-actionbar: "&e&lKOD: &a&l{CODE} &8| &7Pozostały czas: &c&l{TIME}s"
+  captcha-success: "&a&lSUKCES! &7Kod poprawny. Zostałeś pomyślnie zweryfikowany!"
+  captcha-failed-attempt: "&c&lBŁĘDNY KOD! &7Pozostało prób: &e{ATTEMPTS}&7. Otwieranie tabliczki ponownie..."
+  captcha-wrong-line: "&c&lZŁA LINIJKA! &7Kod musisz wpisać w &e&lLINIJCE {LINE}&7! Pozostało prób: &e{ATTEMPTS}&7."
+  captcha-kick-failed: "&c&lWERYFIKACJA NIEUDANA\n\n&7Wprowadzono błędny kod captchy zbyt wiele razy!"
+  captcha-kick-timeout: "&c&lUPŁYNĄŁ CZAS\n\n&7Nie wpisano kodu captchy w wymaganym czasie ({SECONDS}s)!"
+  captcha-blocked-action: "&cMusisz najpierw wpisać kod captchy na tabliczce!"
+  auth-login-prompt-actionbar: "&eZaloguj się: &a/login <hasło>"
+  auth-login-prompt-chat: "&eZaloguj się na serwer używając: &a/login <hasło>"
+  auth-register-prompt-actionbar: "&cZarejestruj się: &e/register <hasło> <powtórzHasło>"
+  auth-register-prompt-chat: "&cZarejestruj swoje konto używając: &e/register <hasło> <powtórzHasło>"
+  auth-login-success: "&a&lZALOGOWANO! &7Życzymy miłej gry na serwerze."
+  auth-register-success: "&a&lZAREJESTROWANO! &7Twoje konto zostało pomyślnie utworzone."
+  auth-wrong-password: "&c&lBŁĘDNE HASŁO! &7Pozostało prób: &e{ATTEMPTS}&7."
+  auth-passwords-not-match: "&c&lBŁĄD! &7Wpisane hasła nie są identyczne."
+  auth-password-not-complex: "&c&lBŁĄD! &7Hasło musi zawierać: &edużą literę&7, &emałą literę&7, &ecyfrę &7oraz &eznak specjalny&7!"
+  auth-premium-welcome: "&aWykryto oficjalne konto &6&lPREMIUM&a! Zostałeś zalogowany automatycznie bez hasła."
+  auth-premium-actionbar: "&a✔ Zalogowano z konta &6&lPREMIUM"
+  auth-premium-title: "&a&lZALOGOWANO"
+  auth-premium-subtitle: "&7Zalogowano z konta &6&lPREMIUM"
+  auth-session-restored: "&a&lWITAJ PONOWNIE! &7Przywrócono aktywną sesję z Twojego adresu IP."
+  auth-timeout-kick: "&c&lUPŁYNĄŁ CZAS\n\n&7Przekroczono limit czasu na zalogowanie/rejestrację!"
+  auth-max-attempts-kick: "&c&lPRZEKROCZONO LIMIT PRÓB\n\n&7Wprowadzono błędne hasło zbyt wiele razy!"
+  movement-prompt: "&e&lWERYFIKACJA: &7Obróć kamerę &e{CAMERA_TARGET}x&7, a następnie zrób &e{WALK_TARGET}&7 kroków!"
+  movement-camera-actionbar: "&e&lWERYFIKACJA &8| &fObróć kamerę: &a&l{CURRENT}&7/&e&l{TARGET}"
+  movement-walk-actionbar: "&e&lWERYFIKACJA &8| &fZrób kroki: &a&l{CURRENT}&7/&e&l{TARGET}"
+  movement-verified: "&a&lSUKCES! &7Weryfikacja ruchu zakończona pomyślnie. Miłej gry na serwerze!"
+  movement-verified-actionbar: "&a✔ Ruch pomyślnie zweryfikowany!"
+  chat-blocked: "&cMusisz najpierw zweryfikować konto, aby pisać na czacie!"
+  command-blocked: "&cMusisz najpierw zweryfikować konto, aby wpisywać komendy!"
+  admin-attack-started: "&c&l[ALARM] &cWykryto zmasowany atak botów! Aktywowano tryb obrony na &e{DURATION}s&c."
+  admin-attack-stopped: "&a&l[INFO] &aAtak botów ustał. Tryb obrony serwera został wyłączony."
+  admin-bot-blocked: "&8[&cAntyBot&8] &7Zablokowano: &e{PLAYER} &8| &c{REASON} &8| &7IP: &f{IP}"
+
+
