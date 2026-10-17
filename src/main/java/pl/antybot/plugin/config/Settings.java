@@ -241,7 +241,7 @@ public class Settings {
         this.captchaMaxAttempts = config.getInt("captcha.max-attempts", 3);
         this.captchaCaseSensitive = config.getBoolean("captcha.case-sensitive", false);
         this.captchaAllowChatFallback = config.getBoolean("captcha.allow-chat-fallback", true);
-        this.captchaOpenDelayTicks = config.getInt("captcha.open-delay-ticks", 5);
+        this.captchaOpenDelayTicks = config.getInt("captcha.open-delay-ticks", 15);
         this.captchaRequiredLine = config.getString("captcha.required-line", "RANDOM").toUpperCase();
         this.captchaBlindness = config.getBoolean("captcha.blindness", true);
 

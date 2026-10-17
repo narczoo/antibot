@@ -17,6 +17,8 @@ public class CaptchaSession {
     private BlockData originalBlockData;
     private BukkitTask timeoutTask;
     private BukkitTask reminderTask;
+    private BukkitTask retryTask;
+    private long lastGuiOpenAttempt;
     private final long startedAt;
 
     public CaptchaSession(UUID playerUuid, String code, int targetLine, int maxAttempts, Location initialPlayerLocation) {
@@ -96,6 +98,22 @@ public class CaptchaSession {
         this.reminderTask = reminderTask;
     }
 
+    public BukkitTask getRetryTask() {
+        return retryTask;
+    }
+
+    public void setRetryTask(BukkitTask retryTask) {
+        this.retryTask = retryTask;
+    }
+
+    public long getLastGuiOpenAttempt() {
+        return lastGuiOpenAttempt;
+    }
+
+    public void setLastGuiOpenAttempt(long lastGuiOpenAttempt) {
+        this.lastGuiOpenAttempt = lastGuiOpenAttempt;
+    }
+
     public long getStartedAt() {
         return startedAt;
     }
@@ -113,6 +131,10 @@ public class CaptchaSession {
         if (reminderTask != null) {
             reminderTask.cancel();
             reminderTask = null;
+        }
+        if (retryTask != null) {
+            retryTask.cancel();
+            retryTask = null;
         }
     }
 }

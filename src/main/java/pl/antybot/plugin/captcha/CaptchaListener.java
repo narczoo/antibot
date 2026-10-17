@@ -59,12 +59,22 @@ public class CaptchaListener implements Listener {
             Location to = event.getTo();
             if (to == null) return;
 
-            // Zezwalamy na obrót kamery, blokujemy przemieszczanie się
+            // Zezwalamy na obrot kamery, blokujemy przemieszczanie sie
             if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()) {
                 Location back = from.clone();
                 back.setYaw(to.getYaw());
                 back.setPitch(to.getPitch());
                 event.setTo(back);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerToggleSneak(org.bukkit.event.player.PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
+        if (plugin.getCaptchaManager().isPending(player.getUniqueId())) {
+            if (event.isSneaking()) {
+                plugin.getCaptchaManager().reopenSignGui(player);
             }
         }
     }
@@ -97,16 +107,23 @@ public class CaptchaListener implements Listener {
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
         if (plugin.getCaptchaManager().isPending(player.getUniqueId())) {
+            String msg = event.getMessage().toLowerCase();
+            if (msg.startsWith("/captcha") || msg.startsWith("/kod")) {
+                event.setCancelled(true);
+                plugin.getCaptchaManager().reopenSignGui(player);
+                return;
+            }
             event.setCancelled(true);
             player.sendMessage(plugin.getSettings().getPrefix() + plugin.getSettings().getCaptchaBlockedAction());
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         if (plugin.getCaptchaManager().isPending(player.getUniqueId())) {
             event.setCancelled(true);
+            plugin.getCaptchaManager().reopenSignGui(player);
         }
     }
 

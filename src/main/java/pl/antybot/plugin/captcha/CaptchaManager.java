@@ -163,7 +163,7 @@ public class CaptchaManager {
         session.setTimeoutTask(timeoutTask);
 
         // Otworz GUI tabliczki po krotkim opoznieniu (aby klient zaladowal swiat i chunki)
-        int delay = plugin.getSettings().getCaptchaOpenDelayTicks();
+        int delay = Math.max(10, plugin.getSettings().getCaptchaOpenDelayTicks());
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && isPending(uuid)) {
                 openSignGui(player, session);
@@ -173,6 +173,7 @@ public class CaptchaManager {
 
     public void openSignGui(Player player, CaptchaSession session) {
         if (player == null || !player.isOnline() || session == null) return;
+        session.setLastGuiOpenAttempt(System.currentTimeMillis());
 
         // Przywroc poprzedni blok jesli byl juz postawiony
         restoreBlock(session);
@@ -198,8 +199,6 @@ public class CaptchaManager {
 
             SignSide front = sign.getSide(Side.FRONT);
             int target = session.getTargetLine();
-            int displayLine = session.getDisplayLine();
-            String code = session.getCode();
 
             String[] setupLines = new String[4];
             setupLines[target] = ""; // linijka, w ktorej gracz musi wpisac kod
@@ -227,23 +226,61 @@ public class CaptchaManager {
             }
             sign.update(true, false);
 
+            // Bezposrednie wyslanie pakietu aktualizacji bloku do klienta gracza
+            player.sendBlockChange(blockLoc, block.getBlockData());
+
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline() && isPending(player.getUniqueId())) {
-                    try {
-                        player.openSign(sign, Side.FRONT);
-                    } catch (Throwable t) {
-                        try {
-                            player.openSign(sign);
-                        } catch (Throwable ignored) {
-                        }
-                    }
+                    sendOpenSignPacket(player, sign);
                 }
-            }, 2L);
+            }, 3L);
+        }
+    }
+
+    public void sendOpenSignPacket(Player player, Sign sign) {
+        if (player == null || !player.isOnline() || sign == null) return;
+        try {
+            player.openSign(sign, Side.FRONT);
+        } catch (Throwable t) {
+            try {
+                player.openSign(sign);
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    public void reopenSignGui(Player player) {
+        if (player == null || !player.isOnline()) return;
+        UUID uuid = player.getUniqueId();
+        CaptchaSession session = getSession(uuid);
+        if (session == null) return;
+
+        long now = System.currentTimeMillis();
+        // Ochrona przed spamem ponownych otwarć (cooldown 400ms)
+        if (now - session.getLastGuiOpenAttempt() < 400) {
+            return;
+        }
+        session.setLastGuiOpenAttempt(now);
+
+        Location signLoc = session.getSignLocation();
+        if (signLoc != null && signLoc.getBlock().getState() instanceof Sign sign) {
+            player.sendBlockChange(signLoc, signLoc.getBlock().getBlockData());
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline() && isPending(uuid)) {
+                    sendOpenSignPacket(player, sign);
+                }
+            }, 1L);
+        } else {
+            openSignGui(player, session);
         }
     }
 
     private Location findSafeSignLocation(Location base) {
         Location candidate = base.getBlock().getLocation();
+        if (candidate.getWorld() != null && !candidate.getChunk().isLoaded()) {
+            candidate.getChunk().load();
+        }
+
         if (candidate.getBlockY() < 315) {
             candidate.add(0, 2, 0);
         } else {
@@ -294,24 +331,49 @@ public class CaptchaManager {
         if (matched) {
             passCaptcha(player, session);
             return true;
-        } else {
-            // Sprawdzamy czy gracz przypadkowo wpisal kod w innej linijce
-            boolean foundInOtherLine = false;
-            for (int i = 0; i < lines.length; i++) {
-                if (i == target || lines[i] == null) continue;
-                String other = lines[i].trim();
-                boolean otherMatched = plugin.getSettings().isCaptchaCaseSensitive()
-                        ? other.equals(expected)
-                        : other.equalsIgnoreCase(expected);
-                if (otherMatched) {
-                    foundInOtherLine = true;
-                    break;
-                }
-            }
+        }
 
-            failAttempt(player, session, foundInOtherLine);
+        // Jesli gracz zamknal tabliczke (ESC) lub klient wyslal pusty stan bez wpisania kodu:
+        if (isSignInputEmpty(lines, target)) {
+            player.sendMessage(plugin.getSettings().getPrefix() + "§eZamknięto tabliczkę bez wpisania kodu. §7(Kliknij LPM lub naciśnij Shift, aby otworzyć)");
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline() && isPending(session.getPlayerUuid())) {
+                    reopenSignGui(player);
+                }
+            }, 10L);
             return false;
         }
+
+        // Gracz wpisal bledny tekst: sprawdzamy czy przypadkowo wpisal kod w innej linijce
+        boolean foundInOtherLine = false;
+        for (int i = 0; i < lines.length; i++) {
+            if (i == target || lines[i] == null) continue;
+            String other = lines[i].trim();
+            boolean otherMatched = plugin.getSettings().isCaptchaCaseSensitive()
+                    ? other.equals(expected)
+                    : other.equalsIgnoreCase(expected);
+            if (otherMatched) {
+                foundInOtherLine = true;
+                break;
+            }
+        }
+
+        failAttempt(player, session, foundInOtherLine);
+        return false;
+    }
+
+    private boolean isSignInputEmpty(String[] lines, int targetLine) {
+        if (lines == null) return true;
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i] == null) continue;
+            String text = lines[i].trim();
+            if (text.isEmpty()) continue;
+            if (text.contains("TUTAJ KOD") || text.equals("------------")) {
+                continue;
+            }
+            return false;
+        }
+        return true;
     }
 
     public void passCaptcha(Player player, CaptchaSession session) {
