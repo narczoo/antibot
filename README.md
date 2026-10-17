@@ -193,21 +193,3 @@ update-checker:
 ```
 
 ---
-
-## 🔨 Budowanie ze Źródeł
-
-Plugin można skompilować przy użyciu dołączonego Maven Wrappera:
-
-- **Windows:**
-  ```cmd
-  .\mvnw.cmd clean package
-  ```
-  *(lub uruchom plik `build.bat`)*
-- **Linux / macOS:**
-  ```bash
-  chmod +x ./mvnw
-  ./mvnw clean package
-  ```
-
-Skompilowany i gotowy plik JAR znajdziesz w katalogu:
-`target/AntyBot-1.0.0.jar` (oraz `AntyBot-1.21.4.jar`).
